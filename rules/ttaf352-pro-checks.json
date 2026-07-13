@@ -1,0 +1,176 @@
+{
+  "standard": "T/TAF 352—2026 Pro 扩展",
+  "title": "等保 2.0 / 国密 / 数据出境加项检查",
+  "version": "2026-07-13",
+  "total_checks": 15,
+  "dimensions": [
+    {
+      "id": "P1",
+      "name": "等保 2.0 合规加项",
+      "checks": [
+        {
+          "id": "P1.1",
+          "title": "等保-网络安全等级保护定级",
+          "description": "MCP Server 应完成网络安全等级保护定级备案，明确安全保护等级。",
+          "levels": { "L1": true, "L2": true, "L3": true },
+          "min_level": "L1",
+          "check_type": "manual_review",
+          "check_points": ["是否完成等保定级备案", "安全保护等级是否明确"],
+          "remediation": "按照等保 2.0 要求完成系统定级备案。"
+        },
+        {
+          "id": "P1.2",
+          "title": "等保-安全物理环境",
+          "description": "MCP Server 部署的物理环境应满足等保要求，包括机房访问控制、温湿度监控、电力保障等。",
+          "levels": { "L1": false, "L2": true, "L3": true },
+          "min_level": "L2",
+          "check_type": "manual_review",
+          "check_points": ["机房是否有访问控制", "是否有温湿度监控", "是否有 UPS 电力保障"],
+          "remediation": "确保部署环境满足等保物理环境要求。"
+        },
+        {
+          "id": "P1.3",
+          "title": "等保-安全区域边界",
+          "description": "MCP Server 应部署在安全区域内，配置防火墙、入侵检测等边界防护措施。",
+          "levels": { "L1": true, "L2": true, "L3": true },
+          "min_level": "L1",
+          "check_type": "manual_review",
+          "check_points": ["是否配置防火墙规则", "是否部署入侵检测", "网络边界是否明确"],
+          "remediation": "配置防火墙和入侵检测，明确网络边界。"
+        },
+        {
+          "id": "P1.4",
+          "title": "等保-安全管理制度",
+          "description": "应建立安全管理策略和制度，包括安全管理机构、人员安全管理、安全建设管理等。",
+          "levels": { "L1": false, "L2": true, "L3": true },
+          "min_level": "L2",
+          "check_type": "manual_review",
+          "check_points": ["是否建立安全管理制度", "是否有安全管理机构", "人员安全管理是否到位"],
+          "remediation": "建立完善的安全管理制度和管理机构。"
+        },
+        {
+          "id": "P1.5",
+          "title": "等保-应急响应预案",
+          "description": "应制定网络安全事件应急预案，定期演练，确保安全事件发生时能快速响应。",
+          "levels": { "L1": true, "L2": true, "L3": true },
+          "min_level": "L1",
+          "check_type": "manual_review",
+          "check_points": ["是否制定应急预案", "是否定期演练", "是否有应急响应团队"],
+          "remediation": "制定网络安全事件应急预案并定期演练。"
+        }
+      ]
+    },
+    {
+      "id": "P2",
+      "name": "国密合规加项",
+      "checks": [
+        {
+          "id": "P2.1",
+          "title": "国密-SM2/SM3/SM4 算法支持",
+          "description": "MCP Server 的加密通信应支持国密算法套件（SM2 非对称加密、SM3 哈希、SM4 对称加密），满足信创合规要求。",
+          "levels": { "L1": true, "L2": true, "L3": true },
+          "min_level": "L1",
+          "check_type": "config_scan",
+          "check_points": ["是否支持 SM2 非对称加密", "是否支持 SM3 哈希算法", "是否支持 SM4 对称加密"],
+          "remediation": "集成国密算法库（如 GmSSL、Tongsuo），支持 SM2/SM3/SM4。"
+        },
+        {
+          "id": "P2.2",
+          "title": "国密-TLCP 双向认证",
+          "description": "远程通信应支持国密 TLCP（Transport Layer Cryptography Protocol）双向认证，替代标准 TLS。",
+          "levels": { "L1": false, "L2": true, "L3": true },
+          "min_level": "L2",
+          "check_type": "config_scan",
+          "check_points": ["是否支持 TLCP 协议", "是否配置国密证书"],
+          "remediation": "配置国密 TLCP 协议和国密证书。"
+        },
+        {
+          "id": "P2.3",
+          "title": "国密-密钥管理",
+          "description": "密钥管理应使用国密硬件安全模块（HSM）或符合国密标准的密钥管理系统。",
+          "levels": { "L1": false, "L2": false, "L3": true },
+          "min_level": "L3",
+          "check_type": "manual_review",
+          "check_points": ["是否使用国密 HSM", "密钥管理是否符合国密标准"],
+          "remediation": "部署国密 HSM 或符合国密标准的密钥管理系统。"
+        },
+        {
+          "id": "P2.4",
+          "title": "国密-数字签名",
+          "description": "工具描述和软件包的数字签名应支持国密 SM2 签名算法。",
+          "levels": { "L1": false, "L2": true, "L3": true },
+          "min_level": "L2",
+          "check_type": "config_scan",
+          "check_points": ["数字签名是否支持 SM2 算法"],
+          "remediation": "使用 SM2 算法对工具描述和软件包进行数字签名。"
+        },
+        {
+          "id": "P2.5",
+          "title": "国密-信创环境适配",
+          "description": "MCP Server 应兼容主流信创操作系统和硬件平台（麒麟/统信/鲲鹏/海光/龙芯）。",
+          "levels": { "L1": false, "L2": true, "L3": true },
+          "min_level": "L2",
+          "check_type": "manual_review",
+          "check_points": ["是否支持麒麟/统信操作系统", "是否支持鲲鹏/海光/龙芯硬件", "是否通过信创兼容性测试"],
+          "remediation": "适配信创操作系统和硬件平台，完成兼容性测试。"
+        }
+      ]
+    },
+    {
+      "id": "P3",
+      "name": "数据出境合规加项",
+      "checks": [
+        {
+          "id": "P3.1",
+          "title": "数据出境-数据本地化存储",
+          "description": "涉及中国用户数据的 MCP Server 应将数据存储在中国大陆境内，不得未经评估向境外传输。",
+          "levels": { "L1": true, "L2": true, "L3": true },
+          "min_level": "L1",
+          "check_type": "config_scan",
+          "check_points": ["数据存储位置是否在境内", "是否有数据出境风险"],
+          "remediation": "确保数据存储在中国大陆境内服务器。"
+        },
+        {
+          "id": "P3.2",
+          "title": "数据出境-数据出境安全评估",
+          "description": "如确需向境外传输数据，应按照《数据出境安全评估办法》完成安全评估。",
+          "levels": { "L1": true, "L2": true, "L3": true },
+          "min_level": "L1",
+          "check_type": "manual_review",
+          "check_points": ["是否需要数据出境", "是否完成数据出境安全评估", "是否获得评估通过"],
+          "remediation": "按照《数据出境安全评估办法》完成安全评估。"
+        },
+        {
+          "id": "P3.3",
+          "title": "数据出境-个人信息保护影响评估",
+          "description": "处理个人信息的 MCP Server 应进行个人信息保护影响评估（PIA）。",
+          "levels": { "L1": false, "L2": true, "L3": true },
+          "min_level": "L2",
+          "check_type": "manual_review",
+          "check_points": ["是否处理个人信息", "是否完成 PIA 评估", "是否有评估报告"],
+          "remediation": "进行个人信息保护影响评估并留存报告。"
+        },
+        {
+          "id": "P3.4",
+          "title": "数据出境-数据分类分级",
+          "description": "应对 MCP Server 处理的数据进行分类分级管理，明确重要数据和个人信息的范围。",
+          "levels": { "L1": true, "L2": true, "L3": true },
+          "min_level": "L1",
+          "check_type": "manual_review",
+          "check_points": ["是否建立数据分类分级制度", "是否明确重要数据范围", "是否对不同级别数据实施差异化保护"],
+          "remediation": "建立数据分类分级制度，明确重要数据和个人信息范围。"
+        },
+        {
+          "id": "P3.5",
+          "title": "数据出境-跨境传输加密",
+          "description": "跨境数据传输必须使用加密通道，并优先使用国密算法。",
+          "levels": { "L1": true, "L2": true, "L3": true },
+          "min_level": "L1",
+          "check_type": "config_scan",
+          "check_points": ["跨境传输是否使用加密通道", "是否优先使用国密算法"],
+          "remediation": "跨境传输使用加密通道，优先使用国密算法。"
+        }
+      ]
+    }
+  ]
+}

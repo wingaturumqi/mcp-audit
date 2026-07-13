@@ -70,6 +70,57 @@ func findRulesFile() string {
 	return "rules/ttaf352-checks.json" // fallback
 }
 
+// LoadPro loads the base rules and merges Pro extension checks
+func LoadPro() (*model.RuleSet, error) {
+	base, err := Load()
+	if err != nil {
+		return nil, err
+	}
+
+	proPath := findRulesFilePro()
+	if proPath == "" {
+		return base, nil
+	}
+
+	data, err := os.ReadFile(proPath)
+	if err != nil {
+		// Pro rules not found is not an error
+		return base, nil
+	}
+
+	var pro model.RuleSet
+	if err := json.Unmarshal(data, &pro); err != nil {
+		return base, nil
+	}
+
+	// Merge Pro dimensions into base
+	base.Dimensions = append(base.Dimensions, pro.Dimensions...)
+	base.TotalChecks += pro.TotalChecks
+
+	return base, nil
+}
+
+func findRulesFilePro() string {
+	candidates := []string{
+		"rules/ttaf352-pro-checks.json",
+	}
+	if exe, err := os.Executable(); err == nil {
+		dir := filepath.Dir(exe)
+		candidates = append(candidates, filepath.Join(dir, "rules", "ttaf352-pro-checks.json"))
+	}
+	_, src, _, ok := runtime.Caller(0)
+	if ok {
+		dir := filepath.Dir(filepath.Dir(src))
+		candidates = append(candidates, filepath.Join(dir, "rules", "ttaf352-pro-checks.json"))
+	}
+	for _, c := range candidates {
+		if _, err := os.Stat(c); err == nil {
+			return c
+		}
+	}
+	return ""
+}
+
 // GetChecksByLevel returns checks filtered by minimum level
 func GetChecksByLevel(rules *model.RuleSet, level string) []model.CheckRuleWithDimension {
 	var result []model.CheckRuleWithDimension

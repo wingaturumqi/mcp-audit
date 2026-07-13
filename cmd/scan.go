@@ -14,6 +14,7 @@ import (
 )
 
 var scanLevel string
+var scanPro bool
 
 var scanCmd = &cobra.Command{
 	Use:   "scan",
@@ -24,6 +25,7 @@ var scanCmd = &cobra.Command{
 
 func init() {
 	scanCmd.Flags().StringVarP(&scanLevel, "level", "l", "L1", "扫描级别: L1 (基础级), L2 (增强级), L3 (高级级)")
+	scanCmd.Flags().BoolVar(&scanPro, "pro", false, "加载 Pro 扩展规则（等保/国密/数据出境）")
 	rootCmd.AddCommand(scanCmd)
 }
 
@@ -33,7 +35,13 @@ func runScan(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("无效级别 %q，可选: L1, L2, L3", scanLevel)
 	}
 
-	ruleSet, err := rules.Load()
+	var ruleSet *model.RuleSet
+	var err error
+	if scanPro {
+		ruleSet, err = rules.LoadPro()
+	} else {
+		ruleSet, err = rules.Load()
+	}
 	if err != nil {
 		return fmt.Errorf("加载规则失败: %w", err)
 	}
