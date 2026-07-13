@@ -53,6 +53,7 @@ func runReport(cmd *cobra.Command, args []string) error {
 	for _, cfg := range configs {
 		parsed, err := parser.Parse(cfg.Path, cfg.Source)
 		if err != nil {
+			fmt.Fprintf(os.Stderr, "⚠️  解析失败 %s: %v\n", cfg.Path, err)
 			continue
 		}
 		for _, server := range parsed.Servers {

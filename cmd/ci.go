@@ -13,6 +13,7 @@ import (
 	"github.com/wingaturumqi/mcp-audit/internal/parser"
 	"github.com/wingaturumqi/mcp-audit/internal/rules"
 	"github.com/wingaturumqi/mcp-audit/internal/scanner"
+	"strings"
 )
 
 var ciCmd = &cobra.Command{
@@ -40,6 +41,11 @@ func runCI(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	ciLevel = strings.ToUpper(ciLevel)
+	if ciLevel != "L1" && ciLevel != "L2" && ciLevel != "L3" {
+		return fmt.Errorf("无效级别 %q，可选: L1, L2, L3", ciLevel)
+	}
+
 	ruleSet, err := rules.Load()
 	if err != nil {
 		return fmt.Errorf("加载规则失败: %w", err)
@@ -58,6 +64,7 @@ func runCI(cmd *cobra.Command, args []string) error {
 	for _, cfg := range configs {
 		parsed, err := parser.Parse(cfg.Path, cfg.Source)
 		if err != nil {
+			fmt.Fprintf(os.Stderr, "⚠️  解析失败 %s: %v\n", cfg.Path, err)
 			continue
 		}
 		for _, server := range parsed.Servers {
@@ -67,7 +74,6 @@ func runCI(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Count real failures (exclude INFO/manual_review)
 	failCount := 0
 	for _, f := range allFindings {
 		if f.Severity > model.INFO {
@@ -75,7 +81,6 @@ func runCI(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Write output
 	var w *os.File
 	if ciOutput != "" {
 		w, err = os.Create(ciOutput)
@@ -94,12 +99,12 @@ func runCI(cmd *cobra.Command, args []string) error {
 		enc := json.NewEncoder(w)
 		enc.SetIndent("", "  ")
 		err = enc.Encode(map[string]interface{}{
-			"level":      ciLevel,
-			"servers":    serverCount,
-			"findings":   len(allFindings),
-			"failures":   failCount,
-			"pass":       failCount == 0,
-			"details":    allFindings,
+			"level":    ciLevel,
+			"servers":  serverCount,
+			"findings": len(allFindings),
+			"failures": failCount,
+			"pass":     failCount == 0,
+			"details":  allFindings,
 		})
 	default:
 		return fmt.Errorf("不支持的格式: %s (可选: sarif, json)", ciFormat)
@@ -109,10 +114,8 @@ func runCI(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Exit code: 0 = pass, 1 = fail
 	if failCount > 0 {
-		fmt.Fprintf(os.Stderr, "❌ CI Gate: %d 项检查未通过 (%s)\n", failCount, ciLevel)
-		os.Exit(1)
+		return fmt.Errorf("CI Gate: %d 项检查未通过 (%s)", failCount, ciLevel)
 	}
 
 	fmt.Fprintf(os.Stderr, "✅ CI Gate: %s 全部通过\n", ciLevel)

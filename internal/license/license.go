@@ -24,7 +24,10 @@ type License struct {
 var publicKeyHex = "0fc90d6314e1a89a178cad85bb65fe9d4f7ba83a8fd8096ac87fe7bc0d064ade"
 
 func publicKey() ed25519.PublicKey {
-	b, _ := hex.DecodeString(publicKeyHex)
+	b, err := hex.DecodeString(publicKeyHex)
+	if err != nil || len(b) != ed25519.PublicKeySize {
+		panic("invalid embedded public key")
+	}
 	return ed25519.PublicKey(b)
 }
 

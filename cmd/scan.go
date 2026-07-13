@@ -161,6 +161,9 @@ func printGradeSummary(ruleSet *model.RuleSet, serverCount int, findings []model
 	totalChecks := len(rules.GetChecksByLevel(ruleSet, level))
 	failed := crit + high + med + low
 	passed := totalChecks - failed
+	if passed < 0 {
+		passed = 0
+	}
 
 	fmt.Printf("  📊 扫描结果: %d 个服务器\n", serverCount)
 	fmt.Printf("  📋 %s 检查项: %d/%d 通过\n", level, passed, totalChecks)

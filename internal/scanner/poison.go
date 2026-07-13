@@ -92,7 +92,7 @@ func init() {
 		},
 		{
 			ID: "EN-07", Category: "隐蔽操作", Severity: model.HIGH,
-			Pattern:  regexp.MustCompile(`(?i)(do\s+not|never|don't)\\s+(tell|inform|notify|show|display|log|report)\s+(the\s+)?(user|human|admin|anyone)`),
+			Pattern:  regexp.MustCompile(`(?i)(do\s+not|never|don't)\s+(tell|inform|notify|show|display|log|report)\s+(the\s+)?(user|human|admin|anyone)`),
 			Desc:     "检测到隐蔽操作指令 (do not tell user)",
 		},
 
@@ -116,7 +116,7 @@ func init() {
 		// === 网络外发检测 ===
 		{
 			ID: "NET-01", Category: "网络外发", Severity: model.HIGH,
-			Pattern:  regexp.MustCompile(`https?://[^\s"']+\.(xyz|top|tk|ml|ga|cf|gq|pw|cc|ru|cn)[^\s"']*`),
+			Pattern:  regexp.MustCompile(`https?://[^\s"']+\.(xyz|top|tk|ml|ga|cf|gq|pw|cc)[^\s"']*`),
 			Desc:     "检测到可疑高风险域名 URL",
 		},
 		{
@@ -186,8 +186,9 @@ type ToolDesc struct {
 
 func truncate(s string, max int) string {
 	s = strings.ReplaceAll(s, "\n", " ")
-	if len(s) > max {
-		return s[:max] + "..."
+	runes := []rune(s)
+	if len(runes) > max {
+		return string(runes[:max]) + "..."
 	}
 	return s
 }
