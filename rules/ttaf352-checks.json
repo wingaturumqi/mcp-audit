@@ -1,0 +1,910 @@
+{
+  "standard": "T/TAF 352—2026",
+  "title": "模型上下文协议服务器（MCP Server）安全技术要求",
+  "version": "2026-06-17",
+  "total_checks": 64,
+  "dimensions": [
+    {
+      "id": "5.1",
+      "name": "身份鉴别与访问控制",
+      "checks": [
+        {
+          "id": "5.1.a",
+          "title": "身份认证机制",
+          "description": "MCP Server 应实现安全的身份认证机制，对接入的 MCP 客户端进行合法性验证（例如要求提供有效令牌）。远程模式下必须进行客户端鉴别，如使用 API 密钥或对称共享密钥。",
+          "levels": { "L1": true, "L2": true, "L3": true },
+          "min_level": "L1",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否配置了身份认证机制",
+            "远程模式下是否强制客户端鉴别",
+            "是否使用 API 密钥或对称共享密钥"
+          ],
+          "remediation": "为 MCP Server 配置 API Key 或共享密钥认证，确保远程模式下所有客户端必须提供有效凭证。"
+        },
+        {
+          "id": "5.1.b",
+          "title": "OAuth 授权框架",
+          "description": "MCP Server 应采用标准的基于 OAuth 2.0 及更高版本的授权框架管理客户端权限，提供令牌颁发、刷新和吊销机制。对于涉及多用户或跨组织场景的接口调用，应使用 OAuth 令牌代表资源所有者进行访问控制。",
+          "levels": { "L1": false, "L2": true, "L3": true },
+          "min_level": "L2",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否实现了 OAuth 2.0+ 授权框架",
+            "是否支持令牌颁发、刷新和吊销",
+            "多用户场景是否使用 OAuth 令牌做访问控制"
+          ],
+          "remediation": "集成 OAuth 2.0 授权框架，实现令牌生命周期管理（颁发/刷新/吊销）。"
+        },
+        {
+          "id": "5.1.c",
+          "title": "双向认证与设备指纹",
+          "description": "当 MCP 客户端与服务器处于不同安全域时，应实施双向身份认证，即服务器应向客户端出示服务器证书验证自身身份，对客户端出示的凭证（如客户端证书或设备指纹）进行校验，防止身份伪造和令牌滥用。",
+          "levels": { "L1": false, "L2": true, "L3": true },
+          "min_level": "L2",
+          "check_type": "config_scan",
+          "check_points": [
+            "跨安全域时是否实施双向认证",
+            "是否校验服务器证书",
+            "是否校验客户端证书或设备指纹"
+          ],
+          "remediation": "配置双向 TLS 认证或设备指纹校验机制，防止跨域场景下的身份伪造。"
+        },
+        {
+          "id": "5.1.d.1",
+          "title": "账号权限管理-基本分离",
+          "description": "MCP Server 应具备基本的账户/应用鉴权体系，针对不同工具和数据资源分配访问权限：对不同调用方进行身份分离和权限限制（如区分只读/读写权限）。",
+          "levels": { "L1": true, "L2": true, "L3": true },
+          "min_level": "L1",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否对不同调用方进行身份分离",
+            "是否区分只读/读写权限"
+          ],
+          "remediation": "为不同调用方配置独立身份，并按只读/读写划分权限。"
+        },
+        {
+          "id": "5.1.d.2",
+          "title": "账号权限管理-零信任分级授权",
+          "description": "基于零信任机制实现角色/用户分级授权，支持细粒度权限控制和最小权限原则。",
+          "levels": { "L1": false, "L2": true, "L3": true },
+          "min_level": "L2",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否实现基于零信任的角色/用户分级授权",
+            "是否支持细粒度权限控制",
+            "是否遵循最小权限原则"
+          ],
+          "remediation": "实现基于角色的细粒度权限控制，遵循最小权限原则分配权限。"
+        },
+        {
+          "id": "5.1.d.3",
+          "title": "账号权限管理-动态权限调整",
+          "description": "宜结合环境和行为进行动态权限调整，如检测到异常行为自动降低权限。",
+          "levels": { "L1": false, "L2": false, "L3": true },
+          "min_level": "L3",
+          "check_type": "manual_review",
+          "check_points": [
+            "是否支持根据环境和行为动态调整权限",
+            "检测到异常行为时是否自动降权"
+          ],
+          "remediation": "实现基于行为分析的动态权限调整机制，异常时自动降权。"
+        },
+        {
+          "id": "5.1.e",
+          "title": "高危操作二次确认",
+          "description": "对于涉及关键资源或敏感操作的工具调用（如删除数据库、批量导出数据等），MCP Server 在 L3 等级下应要求执行主体进行二次确认或加强型认证。可通过 MCP 主机 UI 提示用户确认操作或要求再次验证身份（例如输入管理员口令或 OTP 验证码）后才执行。",
+          "levels": { "L1": false, "L2": false, "L3": true },
+          "min_level": "L3",
+          "check_type": "config_scan",
+          "check_points": [
+            "关键资源/敏感操作是否要求二次确认",
+            "是否支持加强型认证（OTP、管理员口令等）"
+          ],
+          "remediation": "为高危工具调用配置二次确认机制，如 UI 弹窗确认或 OTP 验证。"
+        }
+      ]
+    },
+    {
+      "id": "5.2",
+      "name": "通信与接口安全",
+      "checks": [
+        {
+          "id": "5.2.a.1",
+          "title": "远程传输加密-基础",
+          "description": "远程模式下，MCP Server 与客户端之间的通信应使用强加密协议传输：使用 TLS 1.2 及以上版本的 HTTPS 通道。",
+          "levels": { "L1": true, "L2": true, "L3": true },
+          "min_level": "L1",
+          "check_type": "config_scan",
+          "check_points": [
+            "远程模式是否使用 TLS 1.2+ 的 HTTPS 通道"
+          ],
+          "remediation": "配置 TLS 1.2 及以上版本的 HTTPS，禁用不安全的加密算法和过期证书。"
+        },
+        {
+          "id": "5.2.a.2",
+          "title": "远程传输加密-增强",
+          "description": "应使用 TLS 1.3，配置安全套件和完善证书校验，拒绝不安全的加密算法和过期证书。",
+          "levels": { "L1": false, "L2": true, "L3": true },
+          "min_level": "L2",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否使用 TLS 1.3",
+            "是否配置安全套件",
+            "是否拒绝不安全加密算法和过期证书"
+          ],
+          "remediation": "升级至 TLS 1.3，配置安全密码套件，启用证书校验。"
+        },
+        {
+          "id": "5.2.b",
+          "title": "本地模式通信安全",
+          "description": "本地模式通信应确保管道通道不被非授权进程读取。",
+          "levels": { "L1": true, "L2": true, "L3": true },
+          "min_level": "L1",
+          "check_type": "config_scan",
+          "check_points": [
+            "本地管道通道是否设置访问权限",
+            "是否防止非授权进程读取"
+          ],
+          "remediation": "为本地通信管道设置严格的文件权限，仅允许 MCP 进程访问。"
+        },
+        {
+          "id": "5.2.c.1",
+          "title": "接口完整性校验-基础",
+          "description": "MCP Server 应对接收到的重要请求消息执行完整性验证：对关键参数计算哈希或 HMAC 签名并验证，确保请求未被篡改。",
+          "levels": { "L1": true, "L2": true, "L3": true },
+          "min_level": "L1",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否对关键参数计算哈希或 HMAC 签名",
+            "是否验证请求完整性"
+          ],
+          "remediation": "实现请求 HMAC 签名验证，确保请求参数未被篡改。"
+        },
+        {
+          "id": "5.2.c.2",
+          "title": "接口完整性校验-增强",
+          "description": "采用消息摘要（SHA-256 及以上）或数字签名机制验证请求和响应完整性，防止中间人篡改内容。",
+          "levels": { "L1": false, "L2": true, "L3": true },
+          "min_level": "L2",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否使用 SHA-256 及以上消息摘要",
+            "是否支持数字签名校验"
+          ],
+          "remediation": "升级完整性校验至 SHA-256 或更高强度的数字签名机制。"
+        },
+        {
+          "id": "5.2.d",
+          "title": "双向 TLS 认证",
+          "description": "当 MCP 客户端与服务器处于不同安全域时，服务器应与客户端实施双向 TLS 认证，即双方在 TLS 握手中交换并验证数字证书。通过双向认证确保通信双方均为可信实体，从而抵御伪造服务器或客户端的中间人攻击。",
+          "levels": { "L1": false, "L2": false, "L3": true },
+          "min_level": "L3",
+          "check_type": "config_scan",
+          "check_points": [
+            "跨安全域时是否实施双向 TLS 认证",
+            "TLS 握手是否交换并验证数字证书"
+          ],
+          "remediation": "配置双向 TLS（mTLS），双方在握手时交换并验证证书。"
+        },
+        {
+          "id": "5.2.e",
+          "title": "重放攻击防护",
+          "description": "MCP 通信协议层应具备抗重放攻击设计，实现请求唯一性标识和过期机制，例如使用逐步递增的消息 ID、时间戳和随机数（nonce）组合，拒绝处理重复或过期的请求消息，建议同时采用 nonce 缓存、防重放令牌等手段。",
+          "levels": { "L1": false, "L2": true, "L3": true },
+          "min_level": "L2",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否实现请求唯一性标识",
+            "是否有过期机制",
+            "是否使用 nonce/时间戳/递增消息 ID"
+          ],
+          "remediation": "实现 nonce + 时间戳的防重放机制，拒绝重复或过期请求。"
+        },
+        {
+          "id": "5.2.f.1",
+          "title": "接口输入验证-基础",
+          "description": "MCP Server 所有对外 API 接口应具有合法性校验和拦截机制：对输入参数长度、格式进行检查。",
+          "levels": { "L1": true, "L2": true, "L3": true },
+          "min_level": "L1",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否对输入参数长度进行检查",
+            "是否对输入参数格式进行校验"
+          ],
+          "remediation": "为所有 API 接口添加输入参数长度和格式校验。"
+        },
+        {
+          "id": "5.2.f.2",
+          "title": "接口输入验证-白名单",
+          "description": "设置白名单或正则策略限制参数内容。",
+          "levels": { "L1": false, "L2": true, "L3": true },
+          "min_level": "L2",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否设置参数白名单或正则策略"
+          ],
+          "remediation": "配置输入参数白名单或正则表达式过滤策略。"
+        },
+        {
+          "id": "5.2.f.3",
+          "title": "接口输入验证-WAF与限流",
+          "description": "采用 WAF 或网关层的流量过滤规则，自动拦截异常或恶意请求。对调用频率、并发量设置阈值，防范拒绝服务（DoS）攻击和资源滥用。",
+          "levels": { "L1": false, "L2": false, "L3": true },
+          "min_level": "L3",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否部署 WAF 或流量过滤规则",
+            "是否设置调用频率/并发量阈值",
+            "是否具备 DoS 防护能力"
+          ],
+          "remediation": "部署 WAF 或网关层流量过滤，配置速率限制和并发阈值。"
+        }
+      ]
+    },
+    {
+      "id": "5.3",
+      "name": "工具与资源安全",
+      "checks": [
+        {
+          "id": "5.3.a.1",
+          "title": "工具描述完整性-哈希校验",
+          "description": "MCP Server 应保护已发布工具描述的完整性，防止未授权篡改：在工具注册和分发过程中对描述内容计算哈希或数字签名，运行时校验描述哈希一致性。",
+          "levels": { "L1": true, "L2": true, "L3": true },
+          "min_level": "L1",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否对工具描述计算哈希",
+            "运行时是否校验描述哈希一致性"
+          ],
+          "remediation": "为工具描述实现哈希校验，运行时验证描述未被篡改。"
+        },
+        {
+          "id": "5.3.a.2",
+          "title": "工具描述完整性-数字签名",
+          "description": "所有 MCP 工具描述文件和代码包由开发者数字签名，Server 在加载时验证签名有效且颁发者可信。",
+          "levels": { "L1": false, "L2": true, "L3": true },
+          "min_level": "L2",
+          "check_type": "config_scan",
+          "check_points": [
+            "工具描述文件是否由开发者数字签名",
+            "加载时是否验证签名有效性和颁发者可信度"
+          ],
+          "remediation": "对工具描述文件和代码包实施数字签名，加载时验证签名。"
+        },
+        {
+          "id": "5.3.b",
+          "title": "隐藏指令检测（投毒检测）",
+          "description": "针对工具描述投毒风险，MCP Server 配备隐藏指令检测机制。例如部署正则表达式扫描，以及嵌入模型文本相似度匹配，自动识别并清理描述文本中异常的标签字段（如 <hidden_instruction> 等）；或利用大模型语义分析，对工具描述进行意图识别，标记出含可疑敏感操作（如文件读取、网络外发）的描述并触发人工复核。",
+          "levels": { "L1": false, "L2": true, "L3": true },
+          "min_level": "L2",
+          "check_type": "tool_scan",
+          "check_points": [
+            "是否部署正则表达式扫描检测隐藏指令",
+            "是否进行文本相似度匹配",
+            "是否识别异常标签字段（如 hidden_instruction）",
+            "是否利用大模型语义分析进行意图识别",
+            "是否标记含可疑敏感操作的描述"
+          ],
+          "remediation": "部署工具描述投毒检测机制：正则扫描 + 语义分析，标记可疑描述并触发人工复核。",
+          "owasp_mapping": "OWASP MCP Top 10 - Tool Poisoning"
+        },
+        {
+          "id": "5.3.c.1",
+          "title": "工具权限声明-基本限制",
+          "description": "MCP 工具应明确声明其操作所需的权限范围（例如'仅允许读写临时目录'）。MCP Server 在执行工具时须严格按照声明的权限范围进行隔离控制：对工具的文件系统和网络访问进行基本限制（如禁止访问操作系统关键目录 /etc, ~/.ssh 等）。",
+          "levels": { "L1": true, "L2": true, "L3": true },
+          "min_level": "L1",
+          "check_type": "config_scan",
+          "check_points": [
+            "工具是否声明权限范围",
+            "是否禁止访问操作系统关键目录（/etc, ~/.ssh 等）"
+          ],
+          "remediation": "为每个工具声明权限范围，限制文件系统和网络访问，禁止关键目录。"
+        },
+        {
+          "id": "5.3.c.2",
+          "title": "工具权限声明-沙箱隔离",
+          "description": "实现细粒度的沙箱策略，根据工具声明仅授予最小权限，例如使用容器、安全策略等阻止超出权限的系统调用。",
+          "levels": { "L1": false, "L2": true, "L3": true },
+          "min_level": "L2",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否实现细粒度沙箱策略",
+            "是否按工具声明授予最小权限",
+            "是否阻止超出权限的系统调用"
+          ],
+          "remediation": "实现沙箱隔离，按工具声明的权限范围授予最小权限。"
+        },
+        {
+          "id": "5.3.c.3",
+          "title": "工具权限声明-操作系统级隔离",
+          "description": "结合主机操作系统的权限控制系统（如 Windows MCP 权限控制或 Linux cgroup 命名空间）对每个工具执行实例实施隔离，确保即使模型被引导执行恶意工具，也只能在受限环境中运行，危害不可跨越沙箱边界。",
+          "levels": { "L1": false, "L2": false, "L3": true },
+          "min_level": "L3",
+          "check_type": "manual_review",
+          "check_points": [
+            "是否使用 OS 级权限控制（cgroup/命名空间等）",
+            "每个工具执行实例是否独立隔离",
+            "沙箱边界是否不可跨越"
+          ],
+          "remediation": "使用操作系统级隔离机制（cgroup、命名空间、容器）对每个工具实例实施隔离。"
+        },
+        {
+          "id": "5.3.d.1",
+          "title": "工具输出安全-敏感信息脱敏",
+          "description": "MCP Server 应对工具调用的输出结果进行适当过滤或审查：对工具输出中的机密数据（如凭证、个人敏感信息）进行屏蔽或脱敏处理（如掩码处理）。",
+          "levels": { "L1": true, "L2": true, "L3": true },
+          "min_level": "L1",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否对工具输出中的机密数据进行脱敏",
+            "是否屏蔽凭证和个人敏感信息"
+          ],
+          "remediation": "配置输出脱敏规则，对凭证、PII 等敏感信息进行掩码处理。"
+        },
+        {
+          "id": "5.3.d.2",
+          "title": "工具输出安全-恶意内容检测",
+          "description": "针对模型可能难以处理的恶意内容进行检测和移除，避免 AI 模型受到工具输出中的恶意指令干扰。",
+          "levels": { "L1": false, "L2": true, "L3": true },
+          "min_level": "L2",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否检测工具输出中的恶意内容",
+            "是否移除可能干扰 AI 模型的恶意指令"
+          ],
+          "remediation": "在工具输出链路中添加恶意内容检测和过滤。"
+        },
+        {
+          "id": "5.3.d.3",
+          "title": "工具输出安全-策略阻断",
+          "description": "实现输出内容与策略规则匹配，对违反安全策略的输出进行阻断，并记录审计日志。",
+          "levels": { "L1": false, "L2": false, "L3": true },
+          "min_level": "L3",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否实现输出内容策略匹配",
+            "违反策略时是否阻断输出",
+            "是否记录审计日志"
+          ],
+          "remediation": "实现输出策略引擎，匹配安全规则并阻断违规输出，记录审计日志。"
+        },
+        {
+          "id": "5.3.e.1",
+          "title": "资源访问控制-基本权限",
+          "description": "对于 MCP Server 提供的数据资源，应配置细粒度的数据访问控制策略：根据调用方身份实施基本的读/写权限划分和配额限制，防止过量或未经授权的数据提取。",
+          "levels": { "L1": true, "L2": true, "L3": true },
+          "min_level": "L1",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否根据调用方身份划分读/写权限",
+            "是否设置配额限制"
+          ],
+          "remediation": "按调用方身份配置读/写权限和数据提取配额。"
+        },
+        {
+          "id": "5.3.e.2",
+          "title": "资源访问控制-白名单/零信任",
+          "description": "对每个数据资源设定访问白名单或基于零信任设置访问控制策略，仅允许满足策略条件的请求查询。",
+          "levels": { "L1": false, "L2": true, "L3": true },
+          "min_level": "L2",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否为数据资源设定访问白名单",
+            "是否基于零信任设置访问控制策略"
+          ],
+          "remediation": "为每个数据资源配置访问白名单或零信任策略。"
+        },
+        {
+          "id": "5.3.e.3",
+          "title": "资源访问控制-多租户隔离",
+          "description": "在多租户情况下要求做到用户数据严格隔离，不同用户的 MCP 请求相互隔绝。",
+          "levels": { "L1": false, "L2": false, "L3": true },
+          "min_level": "L3",
+          "check_type": "manual_review",
+          "check_points": [
+            "多租户场景下用户数据是否严格隔离",
+            "不同用户的 MCP 请求是否相互隔绝"
+          ],
+          "remediation": "实现多租户数据隔离，确保不同用户请求互不影响。"
+        }
+      ]
+    },
+    {
+      "id": "5.4",
+      "name": "执行环境安全",
+      "checks": [
+        {
+          "id": "5.4.a",
+          "title": "执行环境隔离-低权限运行",
+          "description": "MCP Server 应避免与不相干的服务混合运行：将 MCP Server 进程运行在低权限账户下，限制其系统管理权限。",
+          "levels": { "L1": true, "L2": true, "L3": true },
+          "min_level": "L1",
+          "check_type": "config_scan",
+          "check_points": [
+            "MCP Server 是否运行在低权限账户下",
+            "是否限制系统管理权限"
+          ],
+          "remediation": "将 MCP Server 进程配置为低权限账户运行。"
+        },
+        {
+          "id": "5.4.b",
+          "title": "执行环境隔离-容器化",
+          "description": "采用容器（如 Docker）将 MCP Server 与主机其它应用隔离，并为容器设定资源配额，防范逃逸和资源耗尽攻击。",
+          "levels": { "L1": false, "L2": true, "L3": true },
+          "min_level": "L2",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否使用容器隔离 MCP Server",
+            "是否为容器设定资源配额"
+          ],
+          "remediation": "使用 Docker 等容器技术隔离 MCP Server，配置资源配额限制。"
+        },
+        {
+          "id": "5.4.c",
+          "title": "执行环境隔离-轻量虚拟化",
+          "description": "使用轻量虚拟化沙箱（如 gVisor、Kata Containers）或硬件虚拟化技术，为 MCP Server 提供接近物理隔离级别的独立运行环境。",
+          "levels": { "L1": false, "L2": false, "L3": true },
+          "min_level": "L3",
+          "check_type": "manual_review",
+          "check_points": [
+            "是否使用 gVisor/Kata/Firecracker 等轻量虚拟化",
+            "是否提供接近物理隔离级别的运行环境"
+          ],
+          "remediation": "部署轻量虚拟化沙箱（gVisor、Kata Containers）实现强隔离。"
+        },
+        {
+          "id": "5.4.d",
+          "title": "运行时入侵防护-基线监控",
+          "description": "对系统关键目录、进程进行基线完整性监控，一旦检测到 MCP Server 目录下出现异常文件改动或未授权进程启动，产生告警。",
+          "levels": { "L1": true, "L2": true, "L3": true },
+          "min_level": "L1",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否对关键目录进行基线完整性监控",
+            "是否检测异常文件改动和未授权进程"
+          ],
+          "remediation": "配置基线完整性监控，对关键目录和进程变更产生告警。"
+        },
+        {
+          "id": "5.4.e",
+          "title": "运行时入侵防护-HIDS",
+          "description": "集成主机入侵检测系统（HIDS）或行为监控代理，实时分析 MCP 进程及其子进程行为，例如监测异常的文件读写、高频网络连接等，可疑行为应触发报警。",
+          "levels": { "L1": false, "L2": true, "L3": true },
+          "min_level": "L2",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否集成 HIDS 或行为监控代理",
+            "是否实时分析 MCP 进程行为",
+            "可疑行为是否触发报警"
+          ],
+          "remediation": "集成 HIDS 或行为监控代理，实时监测 MCP 进程异常行为。"
+        },
+        {
+          "id": "5.4.f",
+          "title": "运行时入侵防护-自动响应",
+          "description": "实现自动响应的运行时防护，当检测到明显恶意行为时可立即执行拦截措施，如终止相关进程或断开网络连接，并将事件升级上报。",
+          "levels": { "L1": false, "L2": false, "L3": true },
+          "min_level": "L3",
+          "check_type": "manual_review",
+          "check_points": [
+            "检测到恶意行为时是否自动拦截",
+            "是否支持终止进程或断开网络",
+            "是否自动升级上报事件"
+          ],
+          "remediation": "实现自动响应机制，恶意行为时自动终止进程/断网并上报。"
+        },
+        {
+          "id": "5.4.g",
+          "title": "配置变更管控-授权管理",
+          "description": "所有配置修改和工具部署/更新必须由授权管理员执行，并做好日志记录。",
+          "levels": { "L1": true, "L2": true, "L3": true },
+          "min_level": "L1",
+          "check_type": "config_scan",
+          "check_points": [
+            "配置修改是否仅限授权管理员",
+            "是否记录配置变更日志"
+          ],
+          "remediation": "限制配置修改权限为授权管理员，启用变更日志记录。"
+        },
+        {
+          "id": "5.4.h",
+          "title": "配置变更管控-审批制度",
+          "description": "建立变更审批制度，任何 MCP Server 安全相关配置（如访问控制策略、敏感参数）修改须经双人或多级审核后方可生效。",
+          "levels": { "L1": false, "L2": true, "L3": true },
+          "min_level": "L2",
+          "check_type": "manual_review",
+          "check_points": [
+            "是否建立变更审批制度",
+            "安全配置修改是否需要双人/多级审核"
+          ],
+          "remediation": "建立变更审批流程，安全配置修改需双人审核。"
+        },
+        {
+          "id": "5.4.i",
+          "title": "配置变更管控-自动监控恢复",
+          "description": "实现自动化的配置监控，一旦检测到未经过审批的配置改动，立即恢复到可信配置并报警。",
+          "levels": { "L1": false, "L2": false, "L3": true },
+          "min_level": "L3",
+          "check_type": "manual_review",
+          "check_points": [
+            "是否实现自动化配置监控",
+            "未审批改动是否自动恢复",
+            "是否触发报警"
+          ],
+          "remediation": "实现配置自动监控，未审批改动自动回滚并报警。"
+        },
+        {
+          "id": "5.4.j",
+          "title": "组件漏洞管理-定期关注",
+          "description": "MCP Server 所依赖的操作系统和运行时环境应纳入持续漏洞管理流程：要求定期关注官方漏洞公告并及时更新修补高危漏洞。",
+          "levels": { "L1": true, "L2": true, "L3": true },
+          "min_level": "L1",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否建立漏洞管理流程",
+            "是否定期关注官方漏洞公告",
+            "高危漏洞是否及时修补"
+          ],
+          "remediation": "建立漏洞管理流程，订阅官方漏洞公告，及时修补高危漏洞。"
+        },
+        {
+          "id": "5.4.k",
+          "title": "组件漏洞管理-SCA 扫描",
+          "description": "对服务所使用的组件清单进行安全加固扫描，使用漏洞扫描工具检测已知漏洞并评估其影响，针对未及时修补的漏洞制定风险缓解措施。",
+          "levels": { "L1": false, "L2": true, "L3": true },
+          "min_level": "L2",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否对组件清单进行 SCA 扫描",
+            "是否评估漏洞影响",
+            "是否制定风险缓解措施"
+          ],
+          "remediation": "集成 SCA 扫描工具，定期扫描组件漏洞并评估影响。"
+        },
+        {
+          "id": "5.4.l",
+          "title": "组件漏洞管理-自动化扫描",
+          "description": "建立自动化的漏洞扫描与漏洞情报订阅机制，第一时间获知新出现的相关漏洞，并在安全维护窗口内完成修补或采取缓解手段。",
+          "levels": { "L1": false, "L2": false, "L3": true },
+          "min_level": "L3",
+          "check_type": "manual_review",
+          "check_points": [
+            "是否建立自动化漏洞扫描机制",
+            "是否订阅漏洞情报",
+            "是否在维护窗口内完成修补"
+          ],
+          "remediation": "建立自动化漏洞扫描 + 情报订阅，维护窗口内完成修补。"
+        }
+      ]
+    },
+    {
+      "id": "5.5",
+      "name": "供应链与更新安全",
+      "checks": [
+        {
+          "id": "5.5.a.1",
+          "title": "组件安全审查-静态分析",
+          "description": "在 MCP Server 的软件开发过程中应引入安全审查手段：对自研代码进行静态代码分析和基本的单元测试覆盖安全场景，尽量减少常见安全漏洞。",
+          "levels": { "L1": true, "L2": true, "L3": true },
+          "min_level": "L1",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否对自研代码进行静态分析",
+            "单元测试是否覆盖安全场景"
+          ],
+          "remediation": "集成静态代码分析工具（如 Semgrep、golangci-lint），补充安全场景单测。"
+        },
+        {
+          "id": "5.5.a.2",
+          "title": "组件安全审查-SCA",
+          "description": "对引入的第三方库和开源组件进行 SCA（软件成分分析）扫描，识别已知漏洞、后门和弱配置组件并及时更新替换。",
+          "levels": { "L1": false, "L2": true, "L3": true },
+          "min_level": "L2",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否对第三方库进行 SCA 扫描",
+            "是否识别已知漏洞和后门",
+            "弱配置组件是否及时更新"
+          ],
+          "remediation": "集成 SCA 工具（如 Trivy、Snyk）扫描第三方依赖漏洞。"
+        },
+        {
+          "id": "5.5.a.3",
+          "title": "组件安全审查-渗透测试",
+          "description": "对关键组件进行代码审计和模糊测试，在正式发布前由独立安全测试团队对整体软件进行渗透测试，确保不存在高危漏洞。",
+          "levels": { "L1": false, "L2": false, "L3": true },
+          "min_level": "L3",
+          "check_type": "manual_review",
+          "check_points": [
+            "关键组件是否进行代码审计和模糊测试",
+            "发布前是否由独立团队进行渗透测试"
+          ],
+          "remediation": "安排独立安全团队进行代码审计、模糊测试和渗透测试。"
+        },
+        {
+          "id": "5.5.b.1",
+          "title": "软件签名和验证-校验和",
+          "description": "MCP Server 发行的软件包和后续补丁更新均应采用数字签名或哈希校验方式来确保其来源可信和内容完整：在提供安装包时同时提供文件校验和签名。",
+          "levels": { "L1": true, "L2": true, "L3": true },
+          "min_level": "L1",
+          "check_type": "config_scan",
+          "check_points": [
+            "发行包是否提供文件校验和",
+            "是否提供签名供验证"
+          ],
+          "remediation": "为所有发行包提供 SHA-256 校验和及数字签名。"
+        },
+        {
+          "id": "5.5.b.2",
+          "title": "软件签名和验证-代码签名证书",
+          "description": "使用正式的代码签名证书为 MCP Server 软件签名，便于市场或主机厂商验证签名有效性。",
+          "levels": { "L1": false, "L2": true, "L3": true },
+          "min_level": "L2",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否使用正式代码签名证书",
+            "签名是否可被市场/厂商验证"
+          ],
+          "remediation": "申请正式代码签名证书，对发行包进行签名。"
+        },
+        {
+          "id": "5.5.b.3",
+          "title": "软件签名和验证-供应链安全平台",
+          "description": "实施软件供应链安全平台，对接收的所有 MCP Server 及工具包软件进行签名验证和存档备案，严禁运行任何未经过验证签名的软件，防范供应链替换攻击。",
+          "levels": { "L1": false, "L2": false, "L3": true },
+          "min_level": "L3",
+          "check_type": "manual_review",
+          "check_points": [
+            "是否实施供应链安全平台",
+            "是否对所有软件包进行签名验证",
+            "是否严禁运行未验证签名的软件"
+          ],
+          "remediation": "建立供应链安全平台，所有软件包必须签名验证后方可部署。"
+        },
+        {
+          "id": "5.5.c.1",
+          "title": "更新机制安全-加密链路",
+          "description": "更新服务器通信链路采用加密链路，如使用 HTTPS，并对更新包进行校验后再执行升级。",
+          "levels": { "L1": true, "L2": true, "L3": true },
+          "min_level": "L1",
+          "check_type": "config_scan",
+          "check_points": [
+            "更新通信是否使用 HTTPS",
+            "更新包是否校验后再执行"
+          ],
+          "remediation": "使用 HTTPS 进行更新通信，更新前校验包完整性。"
+        },
+        {
+          "id": "5.5.c.2",
+          "title": "更新机制安全-用户确认",
+          "description": "避免静默自动更新，优先采用用户确认后更新的策略，或者提供策略选项由管理员统一控制更新节奏。更新日志应清晰列出版本变更特别是权限变更点，供用户审查。",
+          "levels": { "L1": false, "L2": true, "L3": true },
+          "min_level": "L2",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否避免静默自动更新",
+            "是否支持用户确认/管理员控制更新",
+            "更新日志是否列出权限变更"
+          ],
+          "remediation": "禁用静默自动更新，提供用户确认或管理员控制选项，更新日志列出变更。"
+        },
+        {
+          "id": "5.5.d",
+          "title": "恶意更新检测",
+          "description": "应部署智能监控检测工具更新后的异常行为。",
+          "levels": { "L1": false, "L2": false, "L3": true },
+          "min_level": "L3",
+          "check_type": "manual_review",
+          "check_points": [
+            "是否监控更新后的异常行为",
+            "是否具备恶意更新检测能力"
+          ],
+          "remediation": "部署更新后行为监控，检测工具更新引入的异常行为。",
+          "note": "标准明确要求的投毒检测点之一"
+        }
+      ]
+    },
+    {
+      "id": "5.6",
+      "name": "数据安全与隐私保护",
+      "checks": [
+        {
+          "id": "5.6.a.1",
+          "title": "数据存储安全-基本保护",
+          "description": "MCP Server 如涉及存储业务数据，应确保静态存储的数据安全：在服务器硬盘或数据库层面对敏感数据采用加密存储或访问控制，例如使用操作系统权限保证只有 MCP 服务账户可读写数据库文件。",
+          "levels": { "L1": true, "L2": true, "L3": true },
+          "min_level": "L1",
+          "check_type": "config_scan",
+          "check_points": [
+            "静态数据是否有加密或访问控制",
+            "数据库文件是否仅 MCP 服务账户可读写"
+          ],
+          "remediation": "对静态存储数据实施加密或 OS 级访问控制。"
+        },
+        {
+          "id": "5.6.a.2",
+          "title": "数据存储安全-强加密",
+          "description": "使用强加密算法（如 AES-256）对关键数据字段存储加密，并妥善管理密钥（建议使用硬件安全模块 HSM 或操作系统密钥管理服务）。",
+          "levels": { "L1": false, "L2": true, "L3": true },
+          "min_level": "L2",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否使用 AES-256 等强加密算法",
+            "密钥管理是否使用 HSM 或 KMS"
+          ],
+          "remediation": "使用 AES-256 加密关键数据，密钥通过 HSM/KMS 管理。"
+        },
+        {
+          "id": "5.6.a.3",
+          "title": "数据存储安全-安全域隔离",
+          "description": "敏感数据存储隔离在高安全等级的模块或独立安全域，且对数据备份介质同样采取加密和严格的访问控制。",
+          "levels": { "L1": false, "L2": false, "L3": true },
+          "min_level": "L3",
+          "check_type": "manual_review",
+          "check_points": [
+            "敏感数据是否隔离在独立安全域",
+            "备份介质是否加密并控制访问"
+          ],
+          "remediation": "将敏感数据隔离到独立安全域，备份介质加密存储。"
+        },
+        {
+          "id": "5.6.b.1",
+          "title": "数据调用控制-最小化原则",
+          "description": "MCP Server 在对外提供数据时应遵循最小化和必要原则：默认不对外提供超出请求范围的数据，对于查询指令应限定返回结果集大小，避免一次性输出过量敏感信息。",
+          "levels": { "L1": true, "L2": true, "L3": true },
+          "min_level": "L1",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否遵循数据最小化原则",
+            "查询结果集大小是否有限制"
+          ],
+          "remediation": "配置数据返回限制，遵循最小化原则，限定结果集大小。"
+        },
+        {
+          "id": "5.6.b.2",
+          "title": "数据调用控制-速率限制",
+          "description": "引入敏感数据调用配额或频次限制机制，例如对同一 IP 或同一会话在短时间内多次请求敏感资源进行速率限制，防止批量爆破式数据获取。",
+          "levels": { "L1": false, "L2": true, "L3": true },
+          "min_level": "L2",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否对敏感数据调用设置配额/频次限制",
+            "是否防止批量爆破式数据获取"
+          ],
+          "remediation": "为敏感数据接口配置速率限制和调用配额。"
+        },
+        {
+          "id": "5.6.b.3",
+          "title": "数据调用控制-动态风险评估",
+          "description": "结合用户身份与行为上下文，对数据调用执行动态风险评估，在检测到异常访问模式时实施额外验证或限制。",
+          "levels": { "L1": false, "L2": false, "L3": true },
+          "min_level": "L3",
+          "check_type": "manual_review",
+          "check_points": [
+            "是否结合用户身份和行为上下文评估风险",
+            "异常访问时是否触发额外验证或限制"
+          ],
+          "remediation": "实现基于用户行为的动态风险评估，异常时触发额外验证。"
+        },
+        {
+          "id": "5.6.c",
+          "title": "隐私保护技术应用",
+          "description": "对于处理个人敏感信息或隐私数据的 MCP Server，应采用技术手段降低隐私泄露风险。在数据分析类工具中应用脱敏技术，仅返回统计汇总或模糊化结果而非原始明细，对于模型可能返回的个人信息内容，应设置自动检测和模糊策略，宜引入差分隐私等机制。",
+          "levels": { "L1": false, "L2": true, "L3": true },
+          "min_level": "L2",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否对个人信息进行自动检测和脱敏",
+            "是否返回统计汇总而非原始明细",
+            "是否引入差分隐私机制"
+          ],
+          "remediation": "实现 PII 自动检测和脱敏，数据分析返回汇总结果，考虑差分隐私。"
+        },
+        {
+          "id": "5.6.d",
+          "title": "访问日志与追踪",
+          "description": "对涉及敏感数据访问的行为，MCP Server 应完整记录日志，包括操作人、时间、访问方式、访问内容等，确保访问日志受到保护，防止未授权篡改。",
+          "levels": { "L1": false, "L2": true, "L3": true },
+          "min_level": "L2",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否记录敏感数据访问日志（操作人/时间/方式/内容）",
+            "访问日志是否防篡改"
+          ],
+          "remediation": "启用敏感数据访问日志，日志文件签名或写入防篡改存储。"
+        }
+      ]
+    },
+    {
+      "id": "5.7",
+      "name": "日志审计与安全监控",
+      "checks": [
+        {
+          "id": "5.7.a.1",
+          "title": "安全事件日志-基础记录",
+          "description": "MCP Server 应对安全相关事件进行全面的日志记录：记录用户登录/认证、重要配置变更、工具调用、数据访问等关键操作日志，包含操作主体、时间、来源 IP、操作详情和结果等。",
+          "levels": { "L1": true, "L2": true, "L3": true },
+          "min_level": "L1",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否记录登录/认证事件",
+            "是否记录配置变更",
+            "是否记录工具调用和数据访问",
+            "日志是否包含主体/时间/IP/详情/结果"
+          ],
+          "remediation": "配置全面的安全事件日志，覆盖认证、配置变更、工具调用、数据访问。"
+        },
+        {
+          "id": "5.7.a.2",
+          "title": "安全事件日志-异常记录",
+          "description": "记录对异常情况的日志，如鉴权失败尝试、被拦截的恶意输入等，并确保日志格式结构化便于分析。",
+          "levels": { "L1": false, "L2": true, "L3": true },
+          "min_level": "L2",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否记录鉴权失败尝试",
+            "是否记录被拦截的恶意输入",
+            "日志格式是否结构化"
+          ],
+          "remediation": "启用异常事件日志记录，使用结构化日志格式（如 JSON）。"
+        },
+        {
+          "id": "5.7.a.3",
+          "title": "安全事件日志-全量与高可靠",
+          "description": "日志系统对所有关键安全事件都有详尽记录，包括调用链路、上下文信息，同时保证高可靠性（日志实时备份或集中收集）以防止本地日志丢失。",
+          "levels": { "L1": false, "L2": false, "L3": true },
+          "min_level": "L3",
+          "check_type": "manual_review",
+          "check_points": [
+            "是否记录调用链路和上下文信息",
+            "日志是否实时备份或集中收集",
+            "是否防止本地日志丢失"
+          ],
+          "remediation": "实现全量日志记录（含调用链路），日志实时备份或集中收集。"
+        },
+        {
+          "id": "5.7.b",
+          "title": "日志保护与完整性",
+          "description": "日志文件应设置严格的访问权限，确保日志不被未授权修改或删除。",
+          "levels": { "L1": true, "L2": true, "L3": true },
+          "min_level": "L1",
+          "check_type": "config_scan",
+          "check_points": [
+            "日志文件是否设置严格访问权限",
+            "是否防止未授权修改或删除"
+          ],
+          "remediation": "设置日志文件权限为只追加，限制访问权限。"
+        },
+        {
+          "id": "5.7.c",
+          "title": "安全监控与告警",
+          "description": "对 MCP Server 的运行状态应实施安全监控。",
+          "levels": { "L1": false, "L2": true, "L3": true },
+          "min_level": "L2",
+          "check_type": "config_scan",
+          "check_points": [
+            "是否对运行状态实施安全监控",
+            "是否配置告警机制"
+          ],
+          "remediation": "配置运行状态监控和告警机制。"
+        },
+        {
+          "id": "5.7.d",
+          "title": "定期审计和演练",
+          "description": "建立定期安全审计机制，检查是否有异常模式或违规现象，并及时处理。",
+          "levels": { "L1": false, "L2": true, "L3": true },
+          "min_level": "L2",
+          "check_type": "manual_review",
+          "check_points": [
+            "是否建立定期安全审计机制",
+            "是否检查异常模式和违规现象",
+            "发现问题是否及时处理"
+          ],
+          "remediation": "建立定期安全审计流程，检查异常模式并及时处理。"
+        }
+      ]
+    }
+  ]
+}

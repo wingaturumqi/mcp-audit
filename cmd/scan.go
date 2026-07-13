@@ -1,0 +1,175 @@
+package cmd
+
+import (
+	"fmt"
+	"os"
+
+	"github.com/spf13/cobra"
+	"github.com/wingaturumqi/mcp-audit/internal/finder"
+	"github.com/wingaturumqi/mcp-audit/internal/model"
+	"github.com/wingaturumqi/mcp-audit/internal/parser"
+	"github.com/wingaturumqi/mcp-audit/internal/rules"
+	"github.com/wingaturumqi/mcp-audit/internal/scanner"
+)
+
+var scanCmd = &cobra.Command{
+	Use:   "scan",
+	Short: "扫描 MCP 配置，输出 T/TAF 352 合规分级报告",
+	Long:  "自动发现并扫描所有 MCP Server 配置，基于 T/TAF 352—2026 标准进行 L1/L2/L3 分级评估。",
+	RunE:  runScan,
+}
+
+func init() {
+	rootCmd.AddCommand(scanCmd)
+}
+
+func runScan(cmd *cobra.Command, args []string) error {
+	// Load rules
+	ruleSet, err := rules.Load()
+	if err != nil {
+		return fmt.Errorf("加载规则失败: %w", err)
+	}
+
+	fmt.Println("🔍 mcp-audit — T/TAF 352—2026 MCP Server 安全合规自查")
+	fmt.Printf("   标准: %s (%s)\n", ruleSet.Standard, ruleSet.Version)
+	fmt.Println()
+
+	// Find configs
+	configs, err := finder.FindAll()
+	if err != nil {
+		return fmt.Errorf("查找配置失败: %w", err)
+	}
+
+	if len(configs) == 0 {
+		fmt.Println("  未找到 MCP 配置文件。")
+		fmt.Println("  已搜索: Claude Desktop, Cursor, VS Code, Windsurf, .mcp.json")
+		return nil
+	}
+
+	fmt.Printf("  找到 %d 个配置文件\n\n", len(configs))
+
+	// Get L1 checks (baseline)
+	l1Checks := rules.GetChecksByLevel(ruleSet, "L1")
+
+	var allFindings []model.Finding
+	serverCount := 0
+
+	for _, cfg := range configs {
+		parsed, err := parser.Parse(cfg.Path, cfg.Source)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "  ⚠️  解析失败 %s: %v\n", cfg.Path, err)
+			continue
+		}
+
+		fmt.Printf("📁 %s (%s)\n", cfg.Path, cfg.Source)
+
+		if len(parsed.Servers) == 0 {
+			fmt.Println("  未配置 MCP 服务器。")
+			fmt.Println()
+			continue
+		}
+
+		for _, server := range parsed.Servers {
+			serverCount++
+			findings := scanner.ScanConfig(server, cfg.Path, l1Checks)
+			printServerResult(server.Name, findings)
+			allFindings = append(allFindings, findings...)
+		}
+		fmt.Println()
+	}
+
+	// Print summary with L1/L2/L3 grading
+	printGradeSummary(ruleSet, serverCount, allFindings)
+
+	return nil
+}
+
+func printServerResult(name string, findings []model.Finding) {
+	if len(findings) == 0 {
+		fmt.Printf("  ✅ %s — L1 检查全部通过\n", name)
+		return
+	}
+
+	failCount := 0
+	reviewCount := 0
+
+	for _, f := range findings {
+		if f.Severity == model.INFO {
+			reviewCount++
+			fmt.Printf("  🔍 [%s] %s %s\n", f.RequiredLevel, f.TtafRef, f.Title)
+			fmt.Printf("     %s\n", f.Detail)
+		} else {
+			failCount++
+			icon := severityIcon(f.Severity)
+			fmt.Printf("  %s [%s] %s %s\n", icon, f.RequiredLevel, f.TtafRef, f.Title)
+			fmt.Printf("     %s\n", f.Detail)
+			fmt.Printf("     💡 %s\n", f.Suggestion)
+		}
+	}
+
+	fmt.Printf("  ⚡ %s: %d 项不通过, %d 项需人工审查\n", name, failCount, reviewCount)
+}
+
+func severityIcon(s model.Severity) string {
+	switch s {
+	case model.CRITICAL:
+		return "🔴"
+	case model.HIGH:
+		return "🟠"
+	case model.MEDIUM:
+		return "🟡"
+	case model.LOW:
+		return "🔵"
+	default:
+		return "⚪"
+	}
+}
+
+func printGradeSummary(ruleSet *model.RuleSet, serverCount int, findings []model.Finding) {
+	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+	// Count by severity
+	var crit, high, med, low, info int
+	for _, f := range findings {
+		switch f.Severity {
+		case model.CRITICAL:
+			crit++
+		case model.HIGH:
+			high++
+		case model.MEDIUM:
+			med++
+		case model.LOW:
+			low++
+		case model.INFO:
+			info++
+		}
+	}
+
+	l1Total := len(rules.GetChecksByLevel(ruleSet, "L1"))
+	l1Failed := crit + high + med + low
+	l1Passed := l1Total - l1Failed
+
+	fmt.Printf("  📊 扫描结果: %d 个服务器\n", serverCount)
+	fmt.Printf("  📋 L1 检查项: %d/%d 通过\n", l1Passed, l1Total)
+	if crit+high > 0 {
+		fmt.Printf("  🔴 严重问题: %d\n", crit+high)
+	}
+	if med+low > 0 {
+		fmt.Printf("  🟡 需改进: %d\n", med+low)
+	}
+	if info > 0 {
+		fmt.Printf("  🔍 需人工审查: %d\n", info)
+	}
+
+	fmt.Println()
+
+	// Determine level
+	if l1Failed == 0 {
+		fmt.Println("  🏆 合规等级: L1 基础级 ✅")
+		fmt.Println("     所有 L1 基础检查项均通过。")
+		fmt.Println("     运行 'mcp-audit scan --level L2' 查看增强级要求。")
+	} else {
+		fmt.Println("  ⚠️  合规等级: 未达标")
+		fmt.Printf("     有 %d 项 L1 基础检查未通过，请根据整改建议修复后重新扫描。\n", l1Failed)
+	}
+}
