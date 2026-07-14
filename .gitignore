@@ -2,3 +2,4 @@ mcp-audit.exe
 mcp-audit
 dist/
 *.exe
+.workbuddy/
