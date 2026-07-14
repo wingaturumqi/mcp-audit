@@ -9,12 +9,14 @@ import (
 	"github.com/wingaturumqi/mcp-audit/internal/finder"
 	"github.com/wingaturumqi/mcp-audit/internal/model"
 	"github.com/wingaturumqi/mcp-audit/internal/parser"
+	"github.com/wingaturumqi/mcp-audit/internal/probe"
 	"github.com/wingaturumqi/mcp-audit/internal/rules"
 	"github.com/wingaturumqi/mcp-audit/internal/scanner"
 )
 
 var scanLevel string
 var scanPro bool
+var scanLive bool
 
 var scanCmd = &cobra.Command{
 	Use:   "scan",
@@ -26,6 +28,7 @@ var scanCmd = &cobra.Command{
 func init() {
 	scanCmd.Flags().StringVarP(&scanLevel, "level", "l", "L1", "扫描级别: L1 (基础级), L2 (增强级), L3 (高级级)")
 	scanCmd.Flags().BoolVar(&scanPro, "pro", false, "加载 Pro 扩展规则（等保/国密/数据出境）")
+	scanCmd.Flags().BoolVar(&scanLive, "live", false, "动态模式：连接 MCP Server 获取真实工具定义并检测投毒")
 	rootCmd.AddCommand(scanCmd)
 }
 
@@ -87,6 +90,31 @@ func runScan(cmd *cobra.Command, args []string) error {
 		for _, server := range parsed.Servers {
 			serverCount++
 			findings := scanner.ScanConfig(server, cfg.Path, checks)
+
+			// Live probe: connect to server and check tool descriptions
+			if scanLive {
+				fmt.Printf("  🔌 正在连接 %s (%s)...", server.Name, server.Transport)
+				probeResult, tools := probe.ProbeAndScan(
+					server.Name, server.Command, server.Args, server.Env,
+					server.URL, server.Transport, cfg.Path,
+				)
+				if probeResult.Error != "" {
+					fmt.Printf(" ❌ %s\n", probeResult.Error)
+				} else {
+					fmt.Printf(" ✅ %s (%d 个工具)\n", probeResult.ServerInfo, len(tools))
+					// Run poison detection on tool descriptions
+					poisonFindings := scanner.DetectPoisonBatch(server.Name, tools, cfg.Path)
+					findings = append(findings, poisonFindings...)
+					// Print each tool's poison status
+					for _, t := range tools {
+						tf := scanner.DetectPoison(server.Name, t.Name, t.Description, cfg.Path)
+						if len(tf) == 0 {
+							fmt.Printf("    ✅ tool:%s — 无投毒风险\n", t.Name)
+						}
+					}
+				}
+			}
+
 			printServerResult(server.Name, findings)
 			allFindings = append(allFindings, findings...)
 		}
